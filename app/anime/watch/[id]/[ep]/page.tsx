@@ -1,47 +1,90 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import VideoPlayer from "@/components/player";
+import { useParams } from "next/navigation";
+import QualitySelector from "@/components/watch-page/qc";
+import Player from "@/components/watch-page/player";
 
-export default function WatchPage({
-  params,
-}: {
-  params: Promise<{ id: string; ep: string }>;
-}) {
-  const [m3u8Url, setM3u8Url] = useState<string>("");
-  const [subtitle, setSubtitle] = useState<string>("");
+export default function WatchPage() {
+  const { id, ep } = useParams();
+  const [data, setData] = useState<any>(null);
+  const [title, setTitle] = useState<any>(null);
+
+  const [currentSource, setCurrentSource] = useState<string>("");
 
   useEffect(() => {
-    async function loadVideo() {
-      const { id, ep } = await params;
+    fetch(`http://localhost:3000/api/watch/${id}/${ep}`)
+      .then((r) => r.json())
+      .then((j) => {
+        setData(j.data);
+        setTitle(j.title);
 
-      try {
-        // 1. Fetch the watch API
-        const res = await fetch(`/api/watch/${id}/${ep}`);
-        if (!res.ok) throw new Error(`Watch API returned ${res.status}`);
-        const data = await res.json();
+        if (j.data.sources?.length) {
+          setCurrentSource(j.data.sources[0].url);
+        }
+      });
+  }, [id, ep]);
 
-        setSubtitle(data.subtitle);
+  if (!data) return <div>Loading episode…</div>;
 
-        // 2. Encode the m3u8 URL for the proxy
-        const proxiedM3u8 = `/api/proxy/${encodeURIComponent(data.source)}`;
-        setM3u8Url(proxiedM3u8);
-      } catch (err) {
-        console.error("Failed to load video:", err);
-      }
-    }
+  const changeQuality = (url: string) => {
+    setCurrentSource(url);
+  };
 
-    loadVideo();
-  }, [params]);
-
-  if (!m3u8Url) return <p>Loading...</p>;
+  // --- Split sources into sub/dub ---
+  const subSources = data.sources.filter((s: any) => !s.isDub);
+  const dubSources = data.sources.filter((s: any) => s.isDub);
 
   return (
-    <VideoPlayer
-      title={`Episode`}
-      m3u8={m3u8Url}
-      textTrack={subtitle}
-      thumb=""
-    />
+    <div
+      style={{
+        maxWidth: "900px",
+        margin: "0 auto",
+        padding: "20px",
+        color: "#fff",
+        fontFamily: "sans-serif",
+      }}
+    >
+      <h2 style={{ marginBottom: "20px" }}>
+        Episode {data.episode} - {title}
+      </h2>
+
+      <Player
+        src={`http://vidapi.skunktank.me:30001/?video=${encodeURIComponent(
+          `http://vidapi.skunktank.me:30000/playlist?url=${currentSource}`,
+        )}`}
+      />
+
+      <QualitySelector
+        sub={subSources}
+        dub={dubSources}
+        currentSource={currentSource}
+        changeQuality={changeQuality}
+      />
+      {/* DOWNLOADS */}
+      <div style={{ marginTop: "20px" }}>
+        <h3>Download:</h3>
+        {data.downloads.map((d: any) => (
+          <a
+            key={`${d.quality}-${d.isDub}`}
+            href={d.download}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: "inline-block",
+              marginRight: "10px",
+              marginBottom: "10px",
+              padding: "5px 10px",
+              background: "#444",
+              color: "#fff",
+              textDecoration: "none",
+              borderRadius: "4px",
+            }}
+          >
+            {d.quality} {d.isDub ? "(Dub)" : "(Sub)"}
+          </a>
+        ))}
+      </div>
+    </div>
   );
 }

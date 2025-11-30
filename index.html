@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <title>Plyr HLS Player</title>
+
+        <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
+
+        <style>
+            :root {
+                --art-theme: #fff;
+                --art-hover-color: #fff;
+                --art-control-background: rgba(255, 255, 255, 0.15);
+                --art-control-hover-background: rgba(255, 255, 255, 0.3);
+            }
+
+            html,
+            body {
+                margin: 0;
+                padding: 0;
+                width: 100%;
+                height: 100%;
+                overflow: hidden;
+                background: #000;
+            }
+
+            .artplayer-app {
+                margin: 0;
+                width: 100vw;
+                height: 100vh;
+            }
+        </style>
+    </head>
+
+    <body>
+        <div class="artplayer-app"></div>
+
+        <script src="https://cdn.jsdelivr.net/npm/artplayer/dist/artplayer.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.17/hls.min.js"></script>
+
+        <script>
+            const urlObj = new URL(window.location.href);
+            const video = urlObj.searchParams.get("video");
+
+            function playM3u8(videoElement, url, art) {
+                if (Hls.isSupported()) {
+                    if (art.hls) art.hls.destroy();
+                    const hls = new Hls();
+                    hls.loadSource(url);
+                    hls.attachMedia(videoElement);
+                    art.hls = hls;
+
+                    art.on("destroy", () => hls.destroy());
+                } else if (
+                    videoElement.canPlayType("application/vnd.apple.mpegurl")
+                ) {
+                    videoElement.src = url;
+                } else {
+                    art.notice.show("Unsupported playback format: m3u8");
+                }
+            }
+
+            const art = new Artplayer({
+                container: document.querySelector(".artplayer-app"),
+                url: decodeURIComponent(video),
+                type: "m3u8",
+                customType: {
+                    m3u8: playM3u8,
+                },
+                fullscreen: true,
+                fullscreenWeb: true,
+            });
+
+            art.on("ready", () => {
+                console.info("HLS instance:", art.hls);
+            });
+        </script>
+    </body>
+</html>
