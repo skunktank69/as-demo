@@ -5,15 +5,16 @@ import { useParams } from "next/navigation";
 import QualitySelector from "@/components/watch-page/qc";
 import Player from "@/components/watch-page/player";
 
-export default function WatchPage() {
+export default function WatchPage(req) {
   const { id, ep } = useParams();
   const [data, setData] = useState<any>(null);
   const [title, setTitle] = useState<any>(null);
 
   const [currentSource, setCurrentSource] = useState<string>("");
-
+  const url = typeof window !== "undefined" ? window.location.origin : null;
+  console.log(url);
   useEffect(() => {
-    fetch(`http://localhost:3000/api/watch/${id}/${ep}`)
+    fetch(`${`${url}` || `http://localhost:3000`}/api/watch/${id}/${ep}`)
       .then((r) => r.json())
       .then((j) => {
         setData(j.data);
