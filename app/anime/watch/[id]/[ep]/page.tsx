@@ -51,8 +51,10 @@ export default function WatchPage(req) {
       </h2>
 
       <Player
-        src={`http://vidapi.skunktank.me:30001/?video=${encodeURIComponent(
-          `http://vidapi.skunktank.me:30000/playlist?url=${currentSource}`,
+        src={`/api/p?video=${encodeURIComponent(
+          `https://m8888-delta.vercel.app/api/v1/streamingProxy?url=${encodeURIComponent(
+            `${currentSource}`,
+          )}`,
         )}`}
       />
 
@@ -82,7 +84,7 @@ export default function WatchPage(req) {
               borderRadius: "4px",
             }}
           >
-            {d.quality} {d.isDub ? "(Dub)" : "(Sub)"}
+            {d.quality} {d.quality.indexOf("eng") > -1 ? "(Dub)" : "(Sub)"}
           </a>
         ))}
       </div>
